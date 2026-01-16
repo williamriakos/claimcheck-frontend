@@ -1256,9 +1256,14 @@
   .mobile-overlay {
     display: none; /* Hidden by default, shown when menu opens */
   }
+
+  /* Hide desktop chat header on mobile */
+  .chat-header {
+    display: none !important;
+  }
 }
 
-/* Desktop - Hide mobile elements */
+/* Desktop - Hide mobile elements, show chat header */
 @media (min-width: 769px) {
   .mobile-header {
     display: none !important;
@@ -1270,6 +1275,10 @@
 
   .mobile-overlay {
     display: none !important;
+  }
+
+  .chat-header {
+    display: flex !important; /* Show chat header on desktop */
   }
 }
 
@@ -1901,6 +1910,31 @@
   position: relative;
 }
 
+/* Desktop Chat Header (V2.2) */
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px;
+  background: var(--blueprint-surface);
+  border-bottom: 2px solid var(--blueprint-grid);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.chat-header-logo {
+  height: 32px;
+  width: auto;
+}
+
+.chat-header-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--steel-text);
+  letter-spacing: 0.5px;
+}
+
 .chat-messages {
   display: flex;
   flex-direction: column;
@@ -2391,6 +2425,12 @@
     <div class="widget-main">
       <!-- Chat Container -->
       <div class="chat-container" id="chat-container">
+        <!-- Desktop Chat Header (V2.2) -->
+        <div class="chat-header">
+          <img src="/rc-logo.png" alt="Riakos Consulting" class="chat-header-logo">
+          <span class="chat-header-title">ClaimCheck</span>
+        </div>
+
         <!-- Messages Area -->
         <div class="chat-messages" id="chat-messages">
           <!-- Messages and inline action buttons will be rendered here by JavaScript -->
