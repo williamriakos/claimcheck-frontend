@@ -1,14 +1,9 @@
 {
   "version": 2,
-  "public": true,
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/public/index.html"
-    },
-    {
       "source": "/claimcheck-service",
-      "destination": "/public/claimcheck-service.html"
+      "destination": "/claimcheck-service.html"
     }
   ],
   "headers": [
