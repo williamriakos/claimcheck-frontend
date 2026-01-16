@@ -1142,6 +1142,7 @@
     margin: 0 !important;
     display: flex !important;
     flex-direction: column !important;
+    padding-top: 56px;             /* V2.2: Space for fixed header */
   }
 
   /* Stack vertically on mobile - V2.2 */
@@ -1154,8 +1155,100 @@
   }
 
   .widget-sidebar {
-    display: none; /* Hide sidebar on mobile */
+    display: none; /* Hide desktop sidebar on mobile - use header menu instead */
   }
+
+  /* Mobile Fixed Header */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: var(--blueprint-surface);
+    border-bottom: 2px solid var(--blueprint-grid);
+    padding: 0 16px;
+    z-index: 1000;
+  }
+
+  .mobile-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mobile-logo {
+    height: 28px;
+    width: auto;
+  }
+
+  .mobile-app-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--steel-text);
+    letter-spacing: 0.5px;
+  }
+
+  .mobile-hamburger {
+    background: transparent;
+    border: none;
+    color: var(--construction-orange);
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  /* Mobile Features Menu (slide-in from right) */
+  .mobile-features-menu {
+    position: fixed;
+    top: 56px;
+    right: -100%;
+    width: 85vw;
+    max-width: 320px;
+    height: calc(100dvh - 56px);
+    background: var(--blueprint-surface);
+    border-left: 2px solid var(--blueprint-grid);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px 16px;
+    transition: right 0.3s ease;
+    z-index: 999;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .mobile-features-menu.open {
+    right: 0;
+  }
+
+  /* Mobile overlay when menu open */
+  .mobile-overlay {
+    display: none;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 998;
+  }
+
+  .mobile-overlay.active {
+    display: block;
+  }
+
+  /* Show mobile header only on mobile */
+  .mobile-header {
+    display: flex !important;
+  }
+}
 
   /* Compact header */
   .claimcheck-header {
@@ -2167,6 +2260,109 @@
   </style>
 </head>
 <body>
+  <!-- Mobile Header (shows only on mobile < 768px) -->
+  <div class="mobile-header" style="display: none;">
+    <div class="mobile-header-left">
+      <img src="/rc-logo.png" alt="RC" class="mobile-logo">
+      <span class="mobile-app-name">ClaimCheck</span>
+    </div>
+    <button class="mobile-hamburger" id="mobile-menu-btn" aria-label="Menu">
+      ☰
+    </button>
+  </div>
+
+  <!-- Mobile Features Menu (slide-in panel) -->
+  <div class="mobile-features-menu" id="mobile-features-menu">
+    <div class="sidebar-title" style="margin-bottom: 20px;">Feature Access</div>
+    <div class="sidebar-tier-badge" id="mobile-tier-badge" style="margin-bottom: 24px;">FREE TIER</div>
+
+    <!-- Copy features from desktop sidebar -->
+    <section class="spec-section">
+      <div class="section-marker">
+        <span class="marker-number">01</span>
+        <h3 class="section-title">Included</h3>
+      </div>
+      <div class="feature-card active">
+        <div class="feature-icon">✔</div>
+        <div class="feature-content">
+          <h4 class="feature-name">Interactive Interview</h4>
+          <p class="feature-desc">Up to 10 targeted questions</p>
+        </div>
+      </div>
+      <div class="feature-card active">
+        <div class="feature-icon">✔</div>
+        <div class="feature-content">
+          <h4 class="feature-name">Statutory Guidance</h4>
+          <p class="feature-desc">SOPA/BCIPA analysis</p>
+        </div>
+      </div>
+      <div class="feature-card active">
+        <div class="feature-icon">✔</div>
+        <div class="feature-content">
+          <h4 class="feature-name">Session Persistence</h4>
+          <p class="feature-desc">Resume anytime (24h)</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="spec-section">
+      <div class="section-marker">
+        <span class="marker-number">02</span>
+        <h3 class="section-title">14-Day Trial</h3>
+      </div>
+      <div class="feature-card locked" onclick="window.open('https://riakosconsulting.com/trial', '_blank')">
+        <div class="feature-icon">■</div>
+        <div class="feature-content">
+          <h4 class="feature-name">Document Upload</h4>
+          <p class="feature-desc">Contracts, claims, schedules</p>
+        </div>
+        <div class="feature-badge">TRIAL</div>
+      </div>
+      <div class="feature-card locked" onclick="window.open('https://riakosconsulting.com/trial', '_blank')">
+        <div class="feature-icon">■</div>
+        <div class="feature-content">
+          <h4 class="feature-name">Unlimited Questions</h4>
+          <p class="feature-desc">No query restrictions</p>
+        </div>
+        <div class="feature-badge">TRIAL</div>
+      </div>
+      <div class="feature-card locked" onclick="window.open('https://riakosconsulting.com/trial', '_blank')">
+        <div class="feature-icon">■</div>
+        <div class="feature-content">
+          <h4 class="feature-name">Expert Analysis</h4>
+          <p class="feature-desc">Detailed recommendations</p>
+        </div>
+        <div class="feature-badge">TRIAL</div>
+      </div>
+    </section>
+
+    <section class="spec-section">
+      <div class="section-marker">
+        <span class="marker-number">03</span>
+        <h3 class="section-title">Pro Features</h3>
+      </div>
+      <div class="feature-card locked" onclick="window.open('https://platform.riakosconsulting.com', '_blank')">
+        <div class="feature-icon">■</div>
+        <div class="feature-content">
+          <h4 class="feature-name">Project Dashboard</h4>
+          <p class="feature-desc">Multi-project tracking</p>
+        </div>
+        <div class="feature-badge pro">PRO</div>
+      </div>
+      <div class="feature-card locked" onclick="window.open('https://platform.riakosconsulting.com', '_blank')">
+        <div class="feature-icon">■</div>
+        <div class="feature-content">
+          <h4 class="feature-name">Deadline Calculator</h4>
+          <p class="feature-desc">Statutory date tracking</p>
+        </div>
+        <div class="feature-badge pro">PRO</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Mobile Overlay (darken background when menu open) -->
+  <div class="mobile-overlay" id="mobile-overlay"></div>
+
   <div class="claimcheck-widget">
     <!-- Single Chat Interface -->
     <div class="widget-main">
@@ -3322,7 +3518,37 @@ async function sendChatMessage() {
   }
 }
 
-    window.addEventListener('DOMContentLoaded', init);
+    // Mobile hamburger menu toggle (V2.2)
+    function setupMobileMenu() {
+      const menuBtn = document.getElementById('mobile-menu-btn');
+      const menu = document.getElementById('mobile-features-menu');
+      const overlay = document.getElementById('mobile-overlay');
+
+      if (!menuBtn || !menu || !overlay) return; // Not on mobile
+
+      // Toggle menu
+      menuBtn.addEventListener('click', () => {
+        const isOpen = menu.classList.contains('open');
+        if (isOpen) {
+          menu.classList.remove('open');
+          overlay.classList.remove('active');
+        } else {
+          menu.classList.add('open');
+          overlay.classList.add('active');
+        }
+      });
+
+      // Close menu when overlay clicked
+      overlay.addEventListener('click', () => {
+        menu.classList.remove('open');
+        overlay.classList.remove('active');
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      init();
+      setupMobileMenu();
+    });
   </script>
 
   <!-- Waiting List Modal -->
