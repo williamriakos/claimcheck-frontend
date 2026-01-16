@@ -2015,10 +2015,14 @@
   }
 }
 
-/* Mobile responsive */
+/* Mobile responsive - V2.2 CRITICAL FIX */
 @media (max-width: 768px) {
   .chat-row {
-    grid-template-columns: 50px 24px 1fr;
+    grid-template-columns: 45px 20px 1fr;  /* Tighter columns on mobile */
+    grid-template-rows: auto;              /* CRITICAL: Each row sizes to content */
+    align-items: flex-start;               /* CRITICAL: Prevent stretch */
+    padding: 14px 0;                       /* More padding for separation */
+    min-height: auto;                      /* CRITICAL: Let content determine height */
   }
 
   .chat-actions {
@@ -2026,17 +2030,22 @@
   }
 
   .chat-gutter {
-    font-size: 10px;
-    padding-left: 8px;
+    font-size: 9px;
+    padding-left: 6px;
+    padding-top: 4px;
   }
 
   .chat-speaker {
-    font-size: 14px;
+    font-size: 13px;
+    padding-top: 2px;
   }
 
   .chat-content {
-    font-size: 14px;
-    padding-right: 8px;
+    font-size: 13px;
+    line-height: 1.6;                      /* Better mobile readability */
+    padding-right: 6px;
+    min-height: auto;                      /* CRITICAL: Content-driven height */
+    overflow: visible;                     /* CRITICAL: Don't clip content */
   }
 }
 
