@@ -54,6 +54,14 @@
       padding: 0;
     }
 
+    html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden; /* Prevent any page-level scrolling */
+    }
+
     body {
       font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
       background: var(--terminal-bg);
@@ -62,9 +70,9 @@
       line-height: 1.6;
       padding: 0;
       margin: 0;
-      overflow-x: hidden;  /* Prevent horizontal scroll */
-      overflow-y: auto;
+      overflow: hidden; /* CRITICAL: Prevent body scrolling */
       width: 100%;
+      height: 100%;
       max-width: 100%;
     }
 
@@ -81,14 +89,16 @@
       background: var(--terminal-bg-light);
       border: none;
       border-radius: 0;
-      overflow: hidden;
+      overflow: hidden; /* CRITICAL: Widget itself never scrolls */
       box-shadow: none;
       display: grid;
       grid-template-columns: 1fr var(--sidebar-w);
       grid-template-rows: 1fr var(--footer-h);
-      position: relative;
+      position: fixed; /* CRITICAL: Fix widget to viewport */
+      top: 0;
       left: 0;
       right: 0;
+      bottom: 0;
     }
 
     /* Header - Sticky */
@@ -877,8 +887,7 @@
   background: var(--blueprint-surface);
   border-left: 1px solid rgba(204, 102, 0, 0.2);
   padding: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden; /* CRITICAL: Sidebar stays fixed, doesn't scroll */
   height: 100%;
   min-height: 0;
   position: relative;
@@ -901,7 +910,8 @@
 .sidebar-content {
   padding: 32px 24px;
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto; /* Sidebar content can scroll independently if needed */
+  overflow-x: hidden;
 }
 
 .sidebar-title {
@@ -1076,10 +1086,11 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow: hidden; /* CRITICAL: Main area never scrolls */
   grid-row: 1;
   grid-column: 1;
   z-index: 10;
+  position: relative;
 }
 
 /* Responsive */
@@ -2008,7 +2019,7 @@
   }
 }
 
-/* Input area - Flex layout, abuts footer */
+/* Input area - FIXED at bottom, never scrolls */
 .chat-input-area {
   position: relative;
   border-top: 1px solid var(--chat-border);
@@ -2016,7 +2027,8 @@
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
   background: var(--chat-bg-primary);
   z-index: 90;
-  flex: 0 0 auto;
+  flex: 0 0 auto; /* CRITICAL: Fixed height, doesn't grow/shrink */
+  flex-shrink: 0; /* CRITICAL: Never shrinks */
   margin-top: auto;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
   min-height: var(--input-min-h);
