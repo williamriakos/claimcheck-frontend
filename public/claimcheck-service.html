@@ -1778,10 +1778,10 @@
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
+  flex: 1;                       /* V2.2 FIX: Take all available space in widget-main */
+  min-height: 0;                 /* V2.2 FIX: Critical for flex scrolling */
   background: var(--chat-bg-primary);
-  overflow: hidden;
+  overflow: hidden;              /* V2.2: Container itself never scrolls */
   position: relative;
 }
 
@@ -2030,20 +2030,15 @@
   }
 }
 
-/* Input area - FIXED at bottom, never scrolls */
+/* Input area - FIXED at bottom, never scrolls - V2.2 */
 .chat-input-area {
-  position: relative;
+  flex-shrink: 0;    /* V2.2: Never shrinks (from benchmark) */
   border-top: 1px solid var(--chat-border);
   padding: 16px;
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
   background: var(--chat-bg-primary);
   z-index: 90;
-  flex: 0 0 auto; /* CRITICAL: Fixed height, doesn't grow/shrink */
-  flex-shrink: 0; /* CRITICAL: Never shrinks */
-  margin-top: auto;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
-  min-height: var(--input-min-h);
-  max-height: 200px;
 }
 
 .chat-input-wrapper {
