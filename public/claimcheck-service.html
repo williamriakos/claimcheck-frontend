@@ -1248,6 +1248,29 @@
   .mobile-header {
     display: flex !important;
   }
+
+  .mobile-features-menu {
+    display: block; /* Enable on mobile */
+  }
+
+  .mobile-overlay {
+    display: none; /* Hidden by default, shown when menu opens */
+  }
+}
+
+/* Desktop - Hide mobile elements */
+@media (min-width: 769px) {
+  .mobile-header {
+    display: none !important;
+  }
+
+  .mobile-features-menu {
+    display: none !important;
+  }
+
+  .mobile-overlay {
+    display: none !important;
+  }
 }
 
   /* Compact header */
