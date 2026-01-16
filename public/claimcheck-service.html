@@ -1788,7 +1788,7 @@
 .chat-messages {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 4px;                      /* V2.2 FIX: Add gap between messages (instead of borders) */
   flex: 1;                       /* V2.2: Simplified - takes remaining space */
   overflow: auto;                /* V2.2: Benchmark pattern - ONLY this scrolls */
   padding: 16px 0 16px 0;
@@ -1837,9 +1837,11 @@
   display: grid;
   grid-template-columns: 60px 28px 1fr auto;
   min-height: 44px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--chat-border);
+  padding: 12px 0;           /* V2.2: Increased padding for separation */
+  border-bottom: none;       /* V2.2 FIX: Removed border - use gap instead */
   transition: background 0.15s ease;
+  outline: none;
+  border-radius: 0;
 }
 
 .chat-row:hover {
@@ -1908,6 +1910,7 @@
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
+  outline: none;             /* V2.2: No outline on content */
   color: var(--chat-text-primary);
   padding-right: 12px;
 }
