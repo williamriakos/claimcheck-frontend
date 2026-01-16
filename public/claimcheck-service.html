@@ -1986,15 +1986,15 @@
 .chat-row {
   display: grid;
   grid-template-columns: 60px 28px 1fr auto;
-  grid-template-rows: auto;      /* V2.2 FIX: Explicit row sizing */
-  align-items: start;            /* V2.2 FIX: Align to top, not stretch */
-  min-height: 44px;
+  grid-auto-rows: minmax(44px, auto);  /* V2.2 CRITICAL: Each row auto-sizes, min 44px */
+  align-items: start;
   padding: 10px 0;
-  border-bottom: none;
+  border: none;
   transition: background 0.15s ease;
   outline: none;
-  border: none;                  /* V2.2 FIX: No borders at all */
-  position: relative;            /* V2.2 FIX: Ensure proper stacking context */
+  position: relative;
+  width: 100%;                         /* V2.2 CRITICAL: Full width */
+  contain: layout style;               /* V2.2: Contain layout calculations */
 }
 
 .chat-row:hover {
