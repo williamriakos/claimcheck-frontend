@@ -1768,18 +1768,40 @@
   min-height: 0;
   background: var(--chat-bg-primary);
   overflow: hidden;
+  position: relative;
 }
 
 .chat-messages {
   display: flex;
   flex-direction: column;
   gap: 0;
-  overflow-y: auto;
+  overflow-y: scroll !important;  /* Force scroll */
   overflow-x: hidden;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+  max-height: 100%;
   padding: 16px 0 16px 0;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--chat-accent) var(--chat-bg-row);
+}
+
+/* Custom scrollbar for webkit browsers */
+.chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: var(--chat-bg-row);
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: var(--chat-accent);
+  border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-hover);
 }
 
 /* Inline action buttons */
@@ -2529,7 +2551,10 @@ function copyMessage(messageId) {
 function scrollToBottom() {
   const container = document.getElementById('chat-messages');
   if (container) {
-    container.scrollTop = container.scrollHeight;
+    // Use requestAnimationFrame for smooth scrolling
+    requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight;
+    });
   }
 }
 
