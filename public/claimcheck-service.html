@@ -1836,12 +1836,15 @@
 .chat-row {
   display: grid;
   grid-template-columns: 60px 28px 1fr auto;
+  grid-template-rows: auto;      /* V2.2 FIX: Explicit row sizing */
+  align-items: start;            /* V2.2 FIX: Align to top, not stretch */
   min-height: 44px;
-  padding: 12px 0;           /* V2.2: Increased padding for separation */
-  border-bottom: none;       /* V2.2 FIX: Removed border - use gap instead */
+  padding: 10px 0;
+  border-bottom: none;
   transition: background 0.15s ease;
   outline: none;
-  border-radius: 0;
+  border: none;                  /* V2.2 FIX: No borders at all */
+  position: relative;            /* V2.2 FIX: Ensure proper stacking context */
 }
 
 .chat-row:hover {
@@ -1910,9 +1913,13 @@
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
-  outline: none;             /* V2.2: No outline on content */
+  outline: none;
   color: var(--chat-text-primary);
   padding-right: 12px;
+  display: block;                /* V2.2 FIX: Ensure block display */
+  position: relative;            /* V2.2 FIX: Proper positioning context */
+  z-index: 1;                    /* V2.2 FIX: Prevent overlap */
+  overflow-wrap: break-word;     /* V2.2 FIX: Break long words properly */
 }
 
 .chat-row.user .chat-content {
