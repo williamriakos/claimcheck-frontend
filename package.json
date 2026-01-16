@@ -1,0 +1,23 @@
+{
+  "name": "claimcheck-frontend",
+  "version": "1.0.0",
+  "description": "ClaimCheck frontend - Construction payment claim pre-screening interface",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Static site - no build needed'",
+    "deploy": "vercel --prod"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/williamriakos/claimcheck-frontend.git"
+  },
+  "keywords": [
+    "claimcheck",
+    "construction",
+    "payment-claims",
+    "frontend"
+  ],
+  "author": "Riakos Consulting",
+  "license": "UNLICENSED"
+}

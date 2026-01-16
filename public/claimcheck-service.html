@@ -1,0 +1,3256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ClaimCheck v2.0 - Interactive Interview</title>
+
+  <!-- FingerprintJS CDN -->
+  <script src="https://openfpcdn.io/fingerprintjs/v3/iife.min.js"></script>
+
+  <style>
+    /* Base Variables - Grass Terminal Theme */
+    :root {
+      --terminal-bg: #0d1b0d;
+      --terminal-bg-light: #1a2e1a;
+      --terminal-text: #c9d1d9;
+      --terminal-text-dim: #8b9d8b;
+      --accent: #CC6600;
+      --accent-hover: #dd7711;
+      --selection: rgba(204, 102, 0, 0.25);
+      --border-subtle: #2a4a2a;
+
+      /* Construction Theme Variables */
+      --construction-orange: #CC6600;
+      --construction-bright: #dd7711;
+      --construction-glow: rgba(204, 102, 0, 0.4);
+
+      /* Blueprint Theme Variables */
+      --blueprint-base: #0d1b0d;
+      --blueprint-surface: #1a2e1a;
+      --blueprint-elevated: #243324;
+      --blueprint-cyan: #4a9eff;
+      --blueprint-cyan-dim: rgba(74, 158, 255, 0.3);
+      --blueprint-grid: #2a4a2a;
+
+      /* Status & Text Variables */
+      --safety-yellow: #ffd700;
+      --steel-text: #c9d1d9;
+      --zinc-text: #8b9d8b;
+      --concrete-text: #a8b5a8;
+      --rebar-text: #6a7a6a;
+      --status-complete: #4ade80;
+      --status-pending: #fbbf24;
+
+      /* Layout Dimensions */
+      --footer-h: 40px;
+      --sidebar-w: 340px;
+      --input-min-h: 76px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+      background: var(--terminal-bg);
+      color: var(--terminal-text);
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 0;
+      margin: 0;
+      overflow-x: hidden;  /* Prevent horizontal scroll */
+      overflow-y: auto;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    /* Widget Container */
+    .claimcheck-widget {
+      width: 100%;
+      max-width: 100%;
+      height: 100vh;
+      height: 100dvh;                           /* Modern mobile viewport */
+      max-height: 100vh;
+      max-height: 100dvh;
+      margin: 0;
+      padding: 0;
+      background: var(--terminal-bg-light);
+      border: none;
+      border-radius: 0;
+      overflow: hidden;
+      box-shadow: none;
+      display: grid;
+      grid-template-columns: 1fr var(--sidebar-w);
+      grid-template-rows: 1fr var(--footer-h);
+      position: relative;
+      left: 0;
+      right: 0;
+    }
+
+    /* Header - Sticky */
+    .claimcheck-header {
+      position: sticky;
+      top: 0;
+      background: var(--terminal-bg);
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .claimcheck-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+
+    .claimcheck-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: var(--terminal-bg-light);
+      color: var(--terminal-text-dim);
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid var(--border-subtle);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Main Content Area */
+    .claimcheck-content {
+      padding: 16px 24px;
+      min-height: 400px;
+      max-height: calc(800px - 120px); /* Widget height minus header/footer */
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    /* Navigation Screens */
+    .nav-screen {
+      display: none;
+    }
+
+    .nav-screen.active {
+      display: block;
+      
+    }
+
+    
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    
+      to { opacity: 0; transform: translateX(100px); }
+    }
+
+    .nav-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .nav-subtitle {
+      font-size: 12px;
+      color: var(--terminal-text-dim);
+      margin-bottom: 24px;
+    }
+
+    /* Jurisdiction Selector */
+    .jurisdiction-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+    }
+
+    .jurisdiction-option {
+      padding: 16px 18px;
+      background: var(--terminal-bg);
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .jurisdiction-option:hover {
+      border-color: var(--accent);
+      background: var(--terminal-bg-light);
+    }
+
+    .jurisdiction-option.selected {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--terminal-bg);
+    }
+
+    .jurisdiction-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .jurisdiction-regime {
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    .bonus-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      background: var(--accent);
+      color: var(--terminal-bg);
+      font-size: 9px;
+      font-weight: 700;
+      margin-left: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Category Selector */
+    .category-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .category-option {
+      padding: 14px 16px;
+      background: var(--terminal-bg);
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .category-option:hover {
+      border-color: var(--accent);
+      background: var(--terminal-bg-light);
+    }
+
+    .category-option.selected {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--terminal-bg);
+  position: relative;
+}
+
+.category-option.selected::after {
+  content: '✔';
+  position: absolute;
+  right: 12px;
+  font-size: 18px;
+  font-weight: bold;
+    }
+
+    .category-id {
+      font-size: 16px;
+      font-weight: 700;
+      margin-right: 12px;
+      opacity: 0.5;
+    }
+
+    .category-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .category-sections {
+      font-size: 11px;
+      opacity: 0.6;
+    }
+
+    /* Question Selector */
+    .question-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .question-option {
+      padding: 12px 14px;
+      background: var(--terminal-bg);
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+    }
+
+    .question-option:hover {
+      border-color: var(--accent);
+      background: var(--terminal-bg-light);
+    }
+
+    .question-option.selected {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--terminal-bg);
+  position: relative;
+}
+
+.question-option.selected::after {
+  content: '✔';
+  position: absolute;
+  right: 10px;
+  font-size: 16px;
+  font-weight: bold;
+    }
+
+    .question-id {
+      font-size: 11px;
+      font-weight: 700;
+      margin-right: 12px;
+      opacity: 0.5;
+      min-width: 30px;
+    }
+
+    .question-text {
+      flex: 1;
+      font-size: 13px;
+    }
+
+    /* Buttons */
+    .nav-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: 1px solid var(--border-subtle);
+      background: #081208;  /* Darker than container (#1a2e1a) for proper contrast */
+      color: var(--terminal-text);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--terminal-bg-light);
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(204, 102, 0, 0.2);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px var(--construction-glow);
+    }
+
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .btn-back {
+      flex: 0 0 auto;
+    }
+
+    .btn-continue {
+      flex: 1;
+    }
+
+    /* Adaptive Phase */
+    .adaptive-container {
+      display: none;
+    }
+
+    .adaptive-container.active {
+      display: block;
+    }
+
+    .context-summary {
+      padding: 16px;
+      background: var(--terminal-bg);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 24px;
+      font-size: 12px;
+    }
+
+    .context-item {
+      display: flex;
+      margin-bottom: 8px;
+    }
+
+    .context-label {
+      font-weight: 600;
+      color: var(--accent);
+      margin-right: 8px;
+      min-width: 100px;
+    }
+
+    .context-value {
+      color: var(--terminal-text);
+    }
+
+    .question-counter {
+      text-align: center;
+      padding: 12px;
+      background: var(--terminal-bg);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+
+    .counter-label {
+      color: var(--terminal-text-dim);
+      margin-bottom: 4px;
+    }
+
+    .counter-number {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .bonus-info {
+      font-size: 11px;
+      color: var(--terminal-text-dim);
+      margin-top: 4px;
+    }
+
+    /* Chat Messages */
+    .messages-container {
+      min-height: 300px;
+      max-height: 500px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+      padding: 16px;
+      background: var(--terminal-bg);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .message {
+      margin-bottom: 16px;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .message-header {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .message-content {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--terminal-text);
+    }
+
+    .message.user .message-header {
+      color: var(--terminal-text-dim);
+    }
+
+    .message.user .message-content {
+      color: var(--terminal-text);
+      opacity: 0.9;
+    }
+
+    /* Input Area */
+    .input-container {
+      display: flex;
+      gap: 10px;
+    }
+
+    .input-field {
+      flex: 1;
+      padding: 12px 14px;
+      background: var(--terminal-bg);
+      border: 1px solid var(--border-subtle);
+      color: var(--terminal-text);
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .input-field::placeholder {
+      color: var(--terminal-text-dim);
+    }
+
+    /* Footer - Sticky */
+    .claimcheck-footer {
+      grid-column: 1 / -1;
+      position: sticky;
+      bottom: 0;
+      background: var(--terminal-bg);
+      padding: 12px 20px;
+      border-top: 1px solid var(--border-subtle);
+      text-align: center;
+      font-size: 11px;
+      line-height: 1.4;
+      color: var(--terminal-text-dim);
+      z-index: 100;
+      height: var(--footer-h);
+      flex-shrink: 0;
+    }
+
+    /* Loading State */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: var(--terminal-text-dim);
+    }
+
+    .loading.active {
+      display: block;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+
+      .claimcheck-header {
+        padding: 12px 16px;
+      }
+
+      .claimcheck-content { padding: 16px 24px;
+      }
+
+      .jurisdiction-list {
+        grid-template-columns: 1fr;
+      }
+
+      .progress-label {
+        font-size: 9px;
+      }
+
+      .nav-buttons {
+        flex-direction: column;
+      }
+
+      .btn-back {
+        order: 2;
+      }
+
+      .btn-continue {
+        order: 1;
+      }
+    }
+
+    /* ===================================== */
+/* T&CS ENTRY CHECKPOINT */
+/* ===================================== */
+
+.entry-checkpoint {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 40px 0;
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.checkpoint-stamp {
+  text-align: center;
+  margin-bottom: 40px;
+  transform: rotate(-2deg);
+  animation: stampDown 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes stampDown {
+  0% {
+    opacity: 0;
+    transform: rotate(-2deg) scale(0.5);
+  }
+  60% {
+    transform: rotate(-2deg) scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-2deg) scale(1);
+  }
+}
+
+.stamp-text {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--construction-orange);
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  text-shadow:
+    0 0 30px var(--construction-glow),
+    0 4px 0 rgba(0, 0, 0, 0.3);
+  line-height: 1;
+}
+
+.stamp-subtitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  color: var(--zinc-text);
+  letter-spacing: 2px;
+  margin-top: 8px;
+  text-transform: uppercase;
+}
+
+/* Safety Notice */
+.safety-notice {
+  background: rgba(255, 184, 0, 0.08);
+  border: 2px solid var(--safety-yellow);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 32px;
+  position: relative;
+}
+
+.safety-notice::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--safety-yellow),
+    var(--safety-yellow) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
+.notice-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.notice-icon {
+  font-size: 24px;
+}
+
+.notice-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--safety-yellow);
+  letter-spacing: 1px;
+}
+
+.notice-list {
+  list-style: none;
+  color: var(--steel-text);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.notice-list li {
+  padding-left: 28px;
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.notice-list li::before {
+  content: '▸';
+  position: absolute;
+  left: 8px;
+  color: var(--safety-yellow);
+  font-weight: bold;
+}
+
+.notice-list strong {
+  color: var(--concrete-text);
+  font-weight: 600;
+}
+
+/* Acceptance Zone */
+.acceptance-zone {
+  margin-bottom: 32px;
+}
+
+.acceptance-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  cursor: pointer;
+  padding: 20px;
+  background: rgba(26, 46, 26, 0.5);
+  border: 2px solid var(--blueprint-grid);
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.acceptance-checkbox:hover {
+  border-color: var(--construction-orange);
+  background: rgba(26, 46, 26, 0.8);
+}
+
+.acceptance-checkbox input[type="checkbox"] {
+  display: none;
+}
+
+.checkbox-custom {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--construction-orange);
+  background: var(--terminal-bg);
+  border-radius: 6px;
+  flex-shrink: 0;
+  position: relative;
+  transition: all 0.3s;
+  margin-top: 2px;
+  box-shadow: 0 0 12px rgba(204, 102, 0, 0.3);
+}
+
+.acceptance-checkbox:hover .checkbox-custom {
+  border-color: var(--construction-bright);
+  box-shadow: 0 0 20px rgba(204, 102, 0, 0.5);
+}
+
+.acceptance-checkbox input:checked + .checkbox-custom {
+  background: var(--construction-orange);
+  border-color: var(--construction-orange);
+  box-shadow: 0 0 20px var(--construction-glow);
+}
+
+.acceptance-checkbox input:checked + .checkbox-custom::after {
+  content: '✔';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: bold;
+  animation: checkPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes checkPop {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.checkbox-label {
+  flex: 1;
+  color: var(--steel-text);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--blueprint-cyan);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.link-btn:hover {
+  color: var(--construction-orange);
+}
+
+.checkbox-sublabel {
+  display: block;
+  font-size: 13px;
+  color: var(--zinc-text);
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* Proceed Button */
+.btn-proceed {
+  width: 100%;
+  padding: 18px 32px;
+  background: var(--construction-orange);
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: all 0.3s;
+  box-shadow: 0 4px 20px var(--construction-glow);
+}
+
+.btn-proceed:hover:not(:disabled) {
+  background: var(--construction-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px var(--construction-glow);
+}
+
+.btn-proceed:disabled {
+  background: rgba(106, 122, 106, 0.3);
+  border: 2px solid var(--rebar-text);
+  color: var(--zinc-text);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-icon {
+  font-size: 20px;
+  transition: transform 0.3s;
+}
+
+.btn-proceed:hover:not(:disabled) .btn-icon {
+  transform: translateX(4px);
+}
+
+/* Entry Footer */
+.entry-footer {
+  text-align: center;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--blueprint-grid);
+  font-size: 11px;
+  color: var(--zinc-text);
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.5px;
+}
+
+/* ===================================== */
+/* FEATURES SIDEBAR */
+/* ===================================== */
+
+.widget-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  min-height: 700px;
+}
+
+.widget-sidebar {
+  background: var(--blueprint-surface);
+  border-left: 1px solid rgba(204, 102, 0, 0.2);
+  padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+  z-index: 50;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  position: sticky;
+  top: 0;
+  background: var(--blueprint-surface);
+  z-index: 10;
+  padding: 32px 24px 20px 24px;
+  margin-bottom: 0;
+  border-bottom: 2px solid var(--blueprint-grid);
+}
+
+.sidebar-content {
+  padding: 32px 24px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--steel-text);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.sidebar-tier-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  background: rgba(204, 102, 0, 0.15);
+  border: 1px solid var(--construction-orange);
+  border-radius: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--construction-orange);
+  letter-spacing: 1px;
+}
+
+/* Spec Section */
+.spec-section {
+  margin-bottom: 32px;
+}
+
+.section-marker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.marker-number {
+  width: 32px;
+  height: 32px;
+  background: var(--blueprint-elevated);
+  border: 2px solid var(--blueprint-cyan-dim);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--blueprint-cyan);
+}
+
+.section-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--steel-text);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Feature Card */
+.feature-card {
+  background: rgba(35, 64, 50, 0.4);
+  border: 1px solid var(--blueprint-grid);
+  border-radius: 6px;
+  padding: 14px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: all 0.3s;
+  cursor: pointer;
+  position: relative;
+}
+
+.feature-card::before,
+.feature-card::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--blueprint-cyan-dim);
+  opacity: 0.3;
+}
+
+.feature-card::before {
+  top: 0;
+  left: 0;
+  border-width: 1px 0 0 1px;
+}
+
+.feature-card::after {
+  bottom: 0;
+  right: 0;
+  border-width: 0 1px 1px 0;
+}
+
+.feature-card.active {
+  background: rgba(74, 158, 106, 0.1);
+  border-color: var(--status-complete);
+}
+
+.feature-card.locked {
+  opacity: 0.6;
+}
+
+.feature-card.locked:hover {
+  opacity: 0.9;
+  border-color: var(--construction-orange);
+  transform: translateX(4px);
+}
+
+.feature-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.feature-content {
+  flex: 1;
+}
+
+.feature-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--concrete-text);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.feature-desc {
+  font-size: 11px;
+  color: var(--zinc-text);
+  line-height: 1.4;
+}
+
+.feature-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 6px;
+  background: var(--construction-orange);
+  border-radius: 3px;
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--blueprint-base);
+  letter-spacing: 0.5px;
+}
+
+.feature-badge.pro {
+  background: var(--safety-yellow);
+}
+
+/* Update claimcheck-widget for sidebar layout */
+.claimcheck-widget {
+      max-width: 1200px;
+      width: 100%;
+      height: 800px;
+      max-height: 800px;
+      min-height: 800px;
+      margin: 0 auto;
+      background: var(--terminal-bg-light);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      display: grid;
+      grid-template-columns: 1fr 340px;}
+
+.widget-main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  grid-row: 1;
+  grid-column: 1;
+  z-index: 10;
+}
+
+/* Responsive */
+/* ==========================================
+   MOBILE RESPONSIVENESS
+   ========================================== */
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .claimcheck-widget {
+    max-width: 1200px;
+    width: 100%;
+    height: 800px;
+    max-height: 800px;
+    min-height: 800px;
+    margin: 0 auto;
+    background: var(--terminal-bg-light);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    display: grid;
+    grid-template-columns: 1fr 300px;
+  }
+
+  .widget-sidebar {
+    border-left: none;
+    border-top: 1px solid rgba(204, 102, 0, 0.2);
+  }
+
+  .region-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile - Primary Breakpoint */
+@media (max-width: 768px) {
+  /* Full screen on mobile */
+  .claimcheck-widget {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    min-height: 100vh !important;
+    max-width: 100vw !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Stack vertically on mobile */
+  .widget-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .widget-sidebar {
+    display: none; /* Hide sidebar on mobile */
+  }
+
+  /* Compact header */
+  .claimcheck-header {
+    padding: 12px 16px;
+    min-height: 50px;
+  }
+
+  .claimcheck-title {
+    font-size: 14px;
+  }
+
+  /* Adjust content padding */
+  .claimcheck-content {
+    padding: 16px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Stamp smaller on mobile */
+  .stamp-text {
+    font-size: 32px;
+  }
+
+  .entry-checkpoint {
+    padding: 20px 0;
+  }
+
+  .checkpoint-description {
+    font-size: 13px;
+    padding: 0 20px;
+  }
+
+  /* Single column grids */
+  .region-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+    max-height: none;
+    margin: 0 auto;
+  }
+
+  .region-card {
+    padding: 24px 20px;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .region-card:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  .region-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+
+  .region-name {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .region-desc {
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  /* State/jurisdiction cards */
+  .jurisdiction-list {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .jurisdiction-card {
+    padding: 16px;
+  }
+
+  /* Category selection */
+  .category-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .category-card {
+    padding: 16px;
+  }
+
+  /* Question cards */
+  .question-card {
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+
+  /* Buttons full-width on mobile */
+  .nav-buttons {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .btn,
+  .btn-back,
+  .btn-continue,
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    min-height: 48px; /* Touch-friendly */
+    font-size: 14px;
+  }
+
+  /* Interview messages */
+  .messages {
+    padding: 16px;
+    max-height: calc(100vh - 200px);
+  }
+
+  .message {
+    margin-bottom: 16px;
+  }
+
+  .message-header {
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+
+  .message-content {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Input area */
+  .interview-input {
+    padding: 12px 16px;
+    flex-shrink: 0;
+  }
+
+  #user-input {
+    font-size: 16px; /* Prevents iOS zoom */
+    padding: 12px;
+    min-height: 48px;
+  }
+
+  #btn-send {
+    min-height: 48px;
+    min-width: 80px;
+  }
+
+  /* Progress indicators */
+  .progress-bar {
+    height: 3px;
+  }
+
+  .progress-label {
+    font-size: 10px;
+  }
+
+  /* Counter */
+  .counter-display {
+    font-size: 11px;
+  }
+
+  .counter-value {
+    font-size: 20px;
+  }
+
+  /* Factor display */
+  .factor-item {
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .factor-marker {
+    font-size: 12px;
+    min-width: 24px;
+  }
+
+  .factor-text {
+    font-size: 13px;
+  }
+}
+
+/* Small Mobile (iPhone SE, etc) */
+@media (max-width: 480px) {
+  .claimcheck-header {
+    padding: 10px 12px;
+  }
+
+  .claimcheck-title {
+    font-size: 13px;
+  }
+
+  .claimcheck-content {
+    padding: 12px;
+  }
+
+  .stamp-text {
+    font-size: 28px;
+  }
+
+  .checkpoint-title {
+    font-size: 18px;
+  }
+
+  .checkpoint-description {
+    font-size: 12px;
+  }
+
+  .region-card,
+  .jurisdiction-card,
+  .category-card,
+  .question-card {
+    padding: 14px;
+  }
+
+  .message-content {
+    font-size: 13px;
+  }
+
+  #user-input {
+    font-size: 16px;
+    padding: 10px;
+  }
+
+  .btn,
+  .btn-continue,
+  .btn-back {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+}
+
+/* Landscape mobile */
+@media (max-width: 896px) and (orientation: landscape) {
+  .claimcheck-widget {
+    height: 100vh !important;
+  }
+
+  .messages {
+    max-height: calc(100vh - 150px);
+  }
+
+  .claimcheck-header {
+    min-height: 45px;
+    padding: 8px 16px;
+  }
+
+  .interview-input {
+    padding: 8px 16px;
+  }
+}
+
+/* Update header styles for monospace */
+.claimcheck-title {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.nav-title {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* Hidden state for screens */
+.screen-hidden {
+  display: none;
+}
+
+
+/* ===========================================
+   REGION & STATE SELECTION
+   =========================================== */
+
+.region-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+  max-height: 400px;
+}
+
+/* Mobile: Stack region cards vertically */
+@media (max-width: 768px) {
+  .region-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  .region-card {
+    width: 100%;
+  }
+}
+
+.region-card {
+  padding: 28px 20px;
+  background: var(--terminal-bg);
+  border: 2px solid var(--border-subtle);
+  cursor: pointer;
+  transition: border-color 0.2s;
+  text-align: center;
+}
+
+.region-card:hover {
+  border-color: var(--construction-orange);
+}
+
+.region-card.selected {
+  border-color: var(--construction-orange);
+  background: rgba(204, 102, 0, 0.05);
+  position: relative;
+
+  position: relative;
+}
+
+.region-card.selected::after {
+  content: '✔';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 22px;
+  color: var(--construction-orange);
+  font-weight: bold;}
+
+.region-card.selected::after {
+  content: '✔';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 22px;
+  color: var(--construction-orange);
+  font-weight: bold;
+}
+
+.region-symbol {
+  font-size: 42px;
+  margin-bottom: 12px;
+  color: var(--construction-orange);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.region-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--steel-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.region-count {
+  font-size: 11px;
+  color: var(--zinc-text);
+  margin-top: 6px;
+}
+
+.state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.state-card {
+  padding: 14px 12px;
+  background: var(--terminal-bg);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.state-card:hover:not(.disabled) {
+  border-color: var(--construction-orange);
+}
+
+.state-card.selected {
+  border-color: var(--construction-orange);
+  background: rgba(204, 102, 0, 0.05);
+
+  position: relative;
+}
+
+.state-card.selected::before {
+  content: '✔';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 18px;
+  color: var(--construction-orange);
+  font-weight: bold;
+  z-index: 10;}
+
+.state-card.disabled {
+  opacity: 0.35;
+  cursor: pointer;
+  border-color: var(--status-pending);
+}
+
+.state-card.disabled::before {
+  content: '■';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 12px;
+  color: var(--status-pending);
+}
+
+.state-card.disabled::after {
+  content: 'Coming Soon';
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  font-size: 8px;
+  padding: 2px 5px;
+  background: var(--status-pending);
+  border-radius: 2px;
+  color: var(--terminal-bg);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.state-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--steel-text);
+  margin-bottom: 4px;
+}
+
+.state-regime {
+  font-size: 10px;
+  color: var(--zinc-text);
+  line-height: 1.3;
+}
+
+
+/* ===========================================
+   WAITING LIST MODAL
+   =========================================== */
+
+.waitlist-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 20, 16, 0.95);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.waitlist-modal.active {
+  display: flex;
+}
+
+.waitlist-content {
+  background: var(--blueprint-surface);
+  border: 2px solid var(--construction-orange);
+  border-radius: 8px;
+  padding: 36px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.waitlist-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--construction-orange);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.waitlist-subtitle {
+  color: var(--zinc-text);
+  margin-bottom: 24px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.waitlist-form input,
+.waitlist-form textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--terminal-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--steel-text);
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.waitlist-form input:focus,
+.waitlist-form textarea:focus {
+  outline: none;
+  border-color: var(--construction-orange);
+}
+
+.waitlist-form textarea {
+  resize: vertical;
+  min-height: 70px;
+  font-family: inherit;
+}
+
+.waitlist-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.waitlist-error {
+  padding: 10px 12px;
+  background: rgba(255, 0, 0, 0.1);
+  border: 1px solid #ff4444;
+  border-radius: 4px;
+  color: #ffcccc;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+
+/* ===========================================
+   DISCRIMINATING FACTORS SCREEN
+   =========================================== */
+
+.discriminating-screen {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+.analysis-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.analysis-status {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: var(--zinc-text);
+  margin-bottom: 20px;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+.factors-list {
+  background: var(--terminal-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 24px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.factor-item {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.factor-item:last-child {
+  border-bottom: none;
+}
+
+.factor-marker {
+  color: var(--construction-orange);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-weight: 600;
+}
+
+.factor-text {
+  color: var(--steel-text);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.factor-text strong {
+  color: var(--concrete-text);
+  font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CHAT THEME VARIABLES (Project Advisor Pattern)
+   ═══════════════════════════════════════════════════════ */
+
+/* NEW Chat Variables */
+.chat-container {
+  --chat-bg-primary: #0d1b0d;
+  --chat-bg-row: #1a2e1a;
+  --chat-bg-row-user: #1a3a5c;
+  --chat-bg-row-hover: #243824;
+  --chat-text-primary: #c9d1d9;
+  --chat-text-secondary: #8b9d8b;
+  --chat-text-muted: #6a7a6a;
+  --chat-accent: #CC6600;
+  --chat-border: #2a4a2a;
+  --chat-gutter: #6a7a6a;
+  --chat-speaker-user: #CC6600;
+  --chat-speaker-ai: #8b9d8b;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CHAT MESSAGE GRID LAYOUT (Project Advisor Pattern)
+   ═══════════════════════════════════════════════════════ */
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--chat-bg-primary);
+  overflow: hidden;
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+  padding: 16px 0 16px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Inline action buttons */
+.inline-action-buttons {
+  padding: 20px 16px !important;
+  display: flex !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  background: var(--chat-bg-primary);
+  position: relative;
+  z-index: 50;
+  min-height: 80px;
+}
+
+.inline-action-buttons button {
+  flex-shrink: 0;
+}
+
+.chat-row {
+  display: grid;
+  grid-template-columns: 60px 28px 1fr auto;
+  min-height: 44px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--chat-border);
+  transition: background 0.15s ease;
+}
+
+.chat-row:hover {
+  background: var(--chat-bg-row-hover);
+}
+
+.chat-row.user {
+  background: var(--chat-bg-row-user);
+}
+
+.chat-row.assistant {
+  background: var(--chat-bg-row);
+}
+
+.chat-row.system {
+  background: var(--chat-bg-primary);
+}
+
+/* Timestamp gutter */
+.chat-gutter {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--chat-gutter);
+  user-select: none;
+  padding-left: 12px;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+/* Speaker indicator */
+.chat-speaker {
+  font-size: 16px;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 1px;
+  user-select: none;
+}
+
+.chat-speaker.user {
+  color: var(--chat-speaker-user);
+}
+
+.chat-speaker.assistant {
+  color: var(--chat-speaker-ai);
+}
+
+.chat-speaker.system {
+  color: var(--chat-text-muted);
+}
+
+/* Message content */
+.chat-content {
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--chat-text-primary);
+  padding-right: 12px;
+}
+
+.chat-row.user .chat-content {
+  color: var(--chat-text-primary);
+}
+
+.chat-row.assistant .chat-content {
+  color: var(--chat-text-secondary);
+}
+
+.chat-row.system .chat-content {
+  color: var(--chat-text-muted);
+  font-style: italic;
+}
+
+/* Formatting within messages */
+.chat-content strong {
+  font-weight: 600;
+  color: var(--chat-accent);
+}
+
+.chat-content p {
+  margin-bottom: 12px;
+}
+
+/* Action buttons */
+.chat-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  align-items: flex-start;
+  padding-top: 2px;
+  padding-right: 12px;
+}
+
+.chat-row:hover .chat-actions {
+  opacity: 1;
+}
+
+.action-btn {
+  background: transparent;
+  border: none;
+  color: var(--chat-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.action-btn:hover {
+  color: var(--chat-accent);
+}
+
+.action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Loading animation (Project Advisor pattern) */
+.loading-dots {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.loading-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--chat-accent);
+  animation: terminal-pulse 1.4s ease-in-out infinite;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes terminal-pulse {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .chat-row {
+    grid-template-columns: 50px 24px 1fr;
+  }
+
+  .chat-actions {
+    display: none !important;
+  }
+
+  .chat-gutter {
+    font-size: 10px;
+    padding-left: 8px;
+  }
+
+  .chat-speaker {
+    font-size: 14px;
+  }
+
+  .chat-content {
+    font-size: 14px;
+    padding-right: 8px;
+  }
+}
+
+/* Input area - Flex layout, abuts footer */
+.chat-input-area {
+  position: relative;
+  border-top: 1px solid var(--chat-border);
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  background: var(--chat-bg-primary);
+  z-index: 90;
+  flex: 0 0 auto;
+  margin-top: auto;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+  min-height: var(--input-min-h);
+  max-height: 200px;
+}
+
+.chat-input-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.chat-input {
+  flex: 1;
+  min-height: 44px;
+  max-height: 120px;
+  padding: 12px 16px;
+  background: var(--chat-bg-row);
+  border: 1px solid var(--chat-border);
+  border-radius: 4px;
+  color: var(--chat-text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  resize: none;
+  overflow-y: auto;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: var(--chat-accent);
+  box-shadow: 0 0 0 1px var(--chat-accent);
+}
+
+.chat-input::placeholder {
+  color: var(--chat-text-muted);
+}
+
+.chat-send-btn {
+  min-height: 44px;
+  padding: 12px 20px;
+  background: var(--chat-accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.chat-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE RESPONSIVE LAYOUT
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .claimcheck-widget {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto auto;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .widget-main {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .widget-sidebar {
+    grid-row: 2;
+    grid-column: 1;
+    height: auto;
+    max-height: 300px;
+    border-left: none;
+    border-top: 1px solid rgba(204, 102, 0, 0.2);
+  }
+
+  .claimcheck-footer {
+    grid-row: 3;
+    grid-column: 1;
+  }
+
+  .chat-input-area {
+    padding: 12px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .chat-input {
+    font-size: 16px;
+  }
+
+  .chat-send-btn {
+    padding: 12px 16px;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <div class="claimcheck-widget">
+    <!-- Single Chat Interface -->
+    <div class="widget-main">
+      <!-- Chat Container -->
+      <div class="chat-container" id="chat-container">
+        <!-- Messages Area -->
+        <div class="chat-messages" id="chat-messages">
+          <!-- Messages and inline action buttons will be rendered here by JavaScript -->
+        </div>
+
+        <!-- Input Area - Always visible -->
+        <div class="chat-input-area" id="text-input-area">
+          <div class="chat-input-wrapper">
+            <textarea
+              id="chat-input"
+              class="chat-input"
+              placeholder="Type your response..."
+              rows="1"
+            ></textarea>
+            <button
+              id="chat-send-btn"
+              class="chat-send-btn"
+            >
+              Send
+            </button>
+          </div>
+
+          <!-- Question counter (free tier only) -->
+          <div id="question-counter" style="margin-top: 8px; font-size: 11px; color: var(--chat-text-muted); text-align: center;">
+            <!-- Will show: "Question 1 of 3" for free tier -->
+          </div>
+        </div>
+      </div>
+    </div><!-- End widget-main -->
+
+    <!-- Features Sidebar -->
+    <aside class="widget-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Feature Access</div>
+        <div class="sidebar-tier-badge" id="sidebar-tier">FREE TIER</div>
+      </div>
+
+      <div class="sidebar-content">
+      <section class="spec-section">
+        <div class="section-marker">
+          <span class="marker-number">01</span>
+          <h3 class="section-title">Included</h3>
+        </div>
+        <div class="feature-card active">
+          <div class="feature-icon">✔</div>
+          <div class="feature-content">
+            <h4 class="feature-name">Interactive Interview</h4>
+            <p class="feature-desc">Up to 10 targeted questions</p>
+          </div>
+        </div>
+        <div class="feature-card active">
+          <div class="feature-icon">✔</div>
+          <div class="feature-content">
+            <h4 class="feature-name">Statutory Guidance</h4>
+            <p class="feature-desc">SOPA/BCIPA analysis</p>
+          </div>
+        </div>
+        <div class="feature-card active">
+          <div class="feature-icon">✔</div>
+          <div class="feature-content">
+            <h4 class="feature-name">Session Persistence</h4>
+            <p class="feature-desc">Resume anytime (24h)</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="spec-section">
+        <div class="section-marker">
+          <span class="marker-number">02</span>
+          <h3 class="section-title">14-Day Trial</h3>
+        </div>
+        <div class="feature-card locked" onclick="window.open('https://riakosconsulting.com/trial', '_blank')">
+          <div class="feature-icon">■</div>
+          <div class="feature-content">
+            <h4 class="feature-name">Document Upload</h4>
+            <p class="feature-desc">Contracts, claims, schedules</p>
+          </div>
+          <div class="feature-badge">TRIAL</div>
+        </div>
+        <div class="feature-card locked" onclick="window.open('https://riakosconsulting.com/trial', '_blank')">
+          <div class="feature-icon">■</div>
+          <div class="feature-content">
+            <h4 class="feature-name">Unlimited Questions</h4>
+            <p class="feature-desc">No query limits</p>
+          </div>
+        </div>
+        <div class="feature-card locked" onclick="window.open('https://riakosconsulting.com/trial', '_blank')">
+          <div class="feature-icon">■</div>
+          <div class="feature-content">
+            <h4 class="feature-name">Export Analysis</h4>
+            <p class="feature-desc">PDF reports</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="spec-section">
+        <div class="section-marker">
+          <span class="marker-number">03</span>
+          <h3 class="section-title">Professional Plan</h3>
+        </div>
+        <div class="feature-card locked" onclick="window.open('https://riakosconsulting.com/contact', '_blank')">
+          <div class="feature-icon">▸</div>
+          <div class="feature-content">
+            <h4 class="feature-name">Compliance Wizard</h4>
+            <p class="feature-desc">Automated SOPA compliance</p>
+          </div>
+          <div class="feature-badge pro">PRO</div>
+        </div>
+        <div class="feature-card locked" onclick="window.open('https://riakosconsulting.com/contact', '_blank')">
+          <div class="feature-icon">▸</div>
+          <div class="feature-content">
+            <h4 class="feature-name">Adjudication Generator</h4>
+            <p class="feature-desc">Auto-generate applications</p>
+          </div>
+          <div class="feature-badge pro">PRO</div>
+        </div>
+        <div class="feature-card locked" onclick="window.open('https://riakosconsulting.com/contact', '_blank')">
+          <div class="feature-icon">▸</div>
+          <div class="feature-content">
+            <h4 class="feature-name">Template Library</h4>
+            <p class="feature-desc">50+ letters & forms</p>
+          </div>
+          <div class="feature-badge pro">PRO</div>
+        </div>
+        <div class="feature-card locked" onclick="window.open('https://riakosconsulting.com/contact', '_blank')">
+          <div class="feature-icon">▸</div>
+          <div class="feature-content">
+            <h4 class="feature-name">Deadline Calculator</h4>
+            <p class="feature-desc">Statutory date tracking</p>
+          </div>
+          <div class="feature-badge pro">PRO</div>
+        </div>
+      </section>
+      </div><!-- sidebar-content -->
+    </aside>
+
+  <div class="claimcheck-footer">
+      <div>Construction Contract & Payment Guidance by <a href="https://riakosconsulting.com" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: none; opacity: 1; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">Riakos Consulting</a></div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration - use relative URLs (same origin)
+    const API_BASE_URL = 'https://claimcheck-service-production-d411.up.railway.app/api';
+
+    // Backend router is always enabled (old flow removed)
+    const USE_BACKEND_ROUTER = true;
+
+    console.log('[ClaimCheck] Backend router: always enabled');
+
+    // State Management
+    const state = {
+      // Region-based navigation
+      selectedRegion: null,
+      selectedState: null,
+      selectedStateData: null,
+      discriminatingFactors: [],
+
+      // Session
+      sessionId: null,
+      fingerprint: null,
+      tier: 'free', // 'free', 'trial', 'pro'
+
+      // Navigation
+      currentStep: 1,
+      selectedJurisdiction: null,
+      selectedCategory: null,
+      selectedQuestion: null,
+      bonusQuestions: 0,
+
+      // Adaptive Phase
+      adaptiveQuestionsAsked: 0,
+      adaptiveQuestionsLimit: 10,
+      adaptiveAnswers: [],
+
+      // User Question Phase
+      userQuestionsAsked: 0,
+      userQuestionsLimit: 3,
+
+      // NEW - Chat flow tracking
+      totalQuestionsAsked: 0,
+      totalQuestionsLimit: 3,
+      currentQuestion: null,
+
+      // UI
+      isLoading: false
+    };
+
+    // Jurisdiction availability data
+    const JURISDICTIONS = {
+      australia: {
+        name: "Australia",
+        symbol: "▪",
+        states: {
+          NSW: { name: "New South Wales", enabled: true, hasData: true, regime: "SOPA 1999", dbKey: "NSW_Australia" },
+          VIC: { name: "Victoria", enabled: false, hasData: false, regime: "SOPA 2002" },
+          QLD: { name: "Queensland", enabled: false, hasData: false, regime: "BIF Act 2017" },
+          WA: { name: "Western Australia", enabled: false, hasData: false, regime: "Construction Contracts Act 2004" },
+          SA: { name: "South Australia", enabled: false, hasData: false, regime: "SOPA 2009" },
+          TAS: { name: "Tasmania", enabled: false, hasData: false, regime: "SOPA 2009" },
+          NT: { name: "Northern Territory", enabled: false, hasData: false, regime: "Construction Contracts Act 2004" },
+          ACT: { name: "Australian Capital Territory", enabled: false, hasData: false, regime: "SOPA 2009" }
+        }
+      },
+      uk: {
+        name: "United Kingdom",
+        symbol: "▪",
+        states: {
+          england_wales: { name: "England & Wales", enabled: true, hasData: true, regime: "HGCRA 1996", dbKey: "UK" },
+          scotland: { name: "Scotland", enabled: false, hasData: false, regime: "Construction Act 2009" }
+        }
+      },
+      middle_east: {
+        name: "Middle East",
+        symbol: "▪",
+        states: {
+          UAE: { name: "United Arab Emirates", enabled: false, hasData: false, regime: "UAE Civil Code + DIFC/ADGM" },
+          Saudi: { name: "Saudi Arabia", enabled: false, hasData: false, regime: "Royal Decree M/46" },
+          Qatar: { name: "Qatar", enabled: false, hasData: false, regime: "Civil Code + QFC" },
+          Oman: { name: "Oman", enabled: false, hasData: false, regime: "Tender Law" },
+          Kuwait: { name: "Kuwait", enabled: false, hasData: false, regime: "Civil Code 67/1980" },
+          Bahrain: { name: "Bahrain", enabled: false, hasData: false, regime: "Civil Code + LCIA" }
+        }
+      }
+    };
+
+// ═══════════════════════════════════════════════════════
+// CHAT MESSAGE SYSTEM (Project Advisor Pattern)
+// ═══════════════════════════════════════════════════════
+
+let messages = [];
+
+/**
+ * Append new message to chat
+ * @param {Object} messageData - Message properties
+ * @returns {Object} Created message
+ */
+function appendChatMessage(messageData) {
+  const message = {
+    id: 'msg-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9),
+    timestamp: new Date(),
+    role: 'system',
+    isLoading: false,
+    ...messageData
+  };
+
+  messages.push(message);
+  renderMessages();
+  scrollToBottom();
+
+  return message;
+}
+
+/**
+ * Update existing message
+ * @param {string} messageId - Message ID to update
+ * @param {Object} updates - Properties to update
+ */
+function updateChatMessage(messageId, updates) {
+  const msg = messages.find(m => m.id === messageId);
+  if (msg) {
+    Object.assign(msg, updates);
+    renderMessages();
+  }
+}
+
+/**
+ * Render all messages to DOM
+ */
+function renderMessages() {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+
+  container.innerHTML = messages.map(renderChatMessage).join('');
+}
+
+/**
+ * Render single message
+ * @param {Object} message - Message object
+ * @returns {string} HTML string
+ */
+function renderChatMessage(message) {
+  const timestamp = formatTime(message.timestamp);
+  const speaker = getSpeakerIndicator(message.role);
+  const content = message.isLoading
+    ? message.content + renderLoadingDots()
+    : formatMessageContent(message.content);
+
+  const copyButton = (message.role !== 'system' && state.tier !== 'free')
+    ? renderCopyButton(message.id)
+    : '';
+
+  return `
+    <div class="chat-row ${message.role}" data-message-id="${message.id}">
+      <div class="chat-gutter">${timestamp}</div>
+      <div class="chat-speaker ${message.role}">${speaker}</div>
+      <div class="chat-content">${content}</div>
+      <div class="chat-actions">
+        ${copyButton}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Format timestamp (British English HH:MM)
+ * @param {Date} date - Timestamp
+ * @returns {string} Formatted time
+ */
+function formatTime(date) {
+  if (!(date instanceof Date)) date = new Date(date);
+  return date.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+}
+
+/**
+ * Get speaker indicator for role
+ * @param {string} role - Message role
+ * @returns {string} Speaker symbol
+ */
+function getSpeakerIndicator(role) {
+  switch(role) {
+    case 'user': return '●';
+    case 'assistant': return '◐';
+    case 'system': return '○';
+    case 'loading': return '○';
+    case 'error': return '✕';
+    default: return '○';
+  }
+}
+
+/**
+ * Format message content with paragraphs
+ * @param {string} content - Raw content
+ * @returns {string} Formatted HTML
+ */
+function formatMessageContent(content) {
+  // Handle markdown-style bold
+  content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+  // Format CTAs (calls-to-action) with bold text
+  const ctaPatterns = [
+    /\b(click here|tap here|press|submit|send|review|approve|reject|confirm|cancel)\b/gi,
+    /\b(next step|previous step|go to|view|open|close|navigate to)\b/gi,
+    /\b(learn more|read more|see details|view details|find out|discover)\b/gi,
+    /\b(get started|begin|start now|try now|sign up|register|log in)\b/gi,
+  ];
+
+  ctaPatterns.forEach(pattern => {
+    content = content.replace(pattern, (match) => `<strong>${match}</strong>`);
+  });
+
+  // Convert double line breaks to paragraphs
+  const paragraphs = content.split('\n\n').filter(p => p.trim());
+
+  if (paragraphs.length > 1) {
+    return paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+  }
+
+  return content.replace(/\n/g, '<br>');
+}
+
+/**
+ * Render loading dots animation
+ * @returns {string} Loading dots HTML
+ */
+function renderLoadingDots() {
+  return `
+    <span class="loading-dots">
+      <span class="loading-dot"></span>
+      <span class="loading-dot"></span>
+      <span class="loading-dot"></span>
+    </span>
+  `;
+}
+
+/**
+ * Render copy button for message
+ * @param {string} messageId - Message ID
+ * @returns {string} Button HTML
+ */
+function renderCopyButton(messageId) {
+  return `
+    <button class="action-btn" onclick="copyMessage('${messageId}')" title="Copy message">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+    </button>
+  `;
+}
+
+/**
+ * Copy message to clipboard
+ * @param {string} messageId - Message ID
+ */
+function copyMessage(messageId) {
+  const message = messages.find(m => m.id === messageId);
+  if (!message) return;
+
+  navigator.clipboard.writeText(message.content).then(() => {
+    // Show brief feedback
+    console.log('Message copied');
+    // TODO: Add toast notification "Copied!"
+  }).catch(err => {
+    console.error('Failed to copy:', err);
+  });
+}
+
+/**
+ * Scroll chat to bottom
+ */
+function scrollToBottom() {
+  const container = document.getElementById('chat-messages');
+  if (container) {
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+    // Question Bank (embedded from server)
+    let questionBank = null;
+
+    // Initialize
+    async function init() {
+      try {
+        // Initialize fingerprint (with fallback if blocked by browser)
+        try {
+          const fp = await (await FingerprintJS.load()).get();
+          state.fingerprint = fp.visitorId;
+        } catch (fpError) {
+          console.warn('FingerprintJS blocked by browser, using fallback ID');
+          // Generate fallback fingerprint using browser characteristics
+          state.fingerprint = 'fallback_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
+        }
+
+
+        // Create session first (required for backend router)
+        await startSession();
+        console.log('[ClaimCheck] Session created:', state.sessionId);
+
+        // Start chat flow
+        startChatFlow();
+
+        // Setup chat input handlers
+        setupChatInputHandlers();
+
+      } catch (error) {
+        console.error('Init error:', error);
+        // Don't block - let widget display even if init has issues
+        // alert('Failed to initialize ClaimCheck. Please refresh the page.');
+      }
+    }
+
+// ═══════════════════════════════════════════════════════
+// CHAT FLOW FUNCTIONS
+// ═══════════════════════════════════════════════════════
+
+// Conversation state tracking
+
+function startChatFlow() {
+  // Welcome + Terms
+  appendChatMessage({
+    role: 'system',
+    content: `Welcome to ClaimCheck - Construction Payment Guidance
+
+⚠ IMPORTANT NOTICES:
+• Not Legal Advice - General statutory information only
+• No Liability - Results must be verified independently
+• Beta Access - May contain errors or incomplete data
+• Proprietary - Patent pending AI technology
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Do you acknowledge these terms? (Type 'yes' or 'I acknowledge')`
+  });
+}
+
+function showActionButtons(buttons) {
+  console.log('showActionButtons called with:', buttons);
+
+  // Remove any existing inline action buttons first
+  const existingButtons = document.querySelector('.inline-action-buttons');
+  if (existingButtons) {
+    console.log('Removing existing buttons');
+    existingButtons.remove();
+  }
+
+  // Get the chat messages container
+  const container = document.getElementById('chat-messages');
+  if (!container) {
+    console.error('chat-messages container not found!');
+    return;
+  }
+
+  console.log('Creating buttons in container:', container);
+
+  // Create buttons to appear inline after the last message
+  const buttonsHTML = `
+    <div class="inline-action-buttons">
+      ${buttons.map(btn => `
+        <button
+          class="btn btn-primary"
+          onclick="handleAction('${btn.action}')"
+          style="min-width: 140px; background: var(--construction-orange); color: white; border: none; padding: 14px 28px; cursor: pointer; font-size: 15px; font-weight: 600; border-radius: 6px; transition: all 0.2s; box-shadow: 0 4px 8px rgba(204, 102, 0, 0.4); position: relative; z-index: 100;"
+          onmouseover="this.style.background='var(--accent-hover)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px rgba(204, 102, 0, 0.6)';"
+          onmouseout="this.style.background='var(--construction-orange)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 8px rgba(204, 102, 0, 0.4)';"
+        >
+          ${btn.text}
+        </button>
+      `).join('')}
+    </div>
+  `;
+
+  // Append buttons directly into the chat flow
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = buttonsHTML;
+  const buttonDiv = tempDiv.firstChild;
+  container.appendChild(buttonDiv);
+
+  console.log('Buttons added to DOM:', buttonDiv);
+  console.log('Button count:', buttonDiv.querySelectorAll('button').length);
+
+  // Ensure buttons are visible
+  setTimeout(() => {
+    scrollToBottom();
+    console.log('Scrolled to bottom');
+  }, 100);
+}
+
+function hideActionButtons() {
+  const buttons = document.querySelector('.inline-action-buttons');
+  if (buttons) {
+    buttons.remove();
+  }
+}
+
+function showTextInput() {
+  const inputArea = document.getElementById('text-input-area');
+  if (inputArea) {
+    inputArea.style.display = 'block';
+  }
+  hideActionButtons();
+}
+
+function hideTextInput() {
+  const inputArea = document.getElementById('text-input-area');
+  if (inputArea) {
+    inputArea.style.display = 'none';
+  }
+}
+
+function handleAction(action) {
+  // Hide action buttons
+  hideActionButtons();
+
+  // Parse action
+  const [actionType, actionValue] = action.split(':');
+
+  switch(actionType) {
+    case 'accept-terms':
+      appendChatMessage({
+        role: 'user',
+        content: '[✔] I acknowledge'
+      });
+      askRegion();
+      break;
+
+    case 'select-region':
+      const regionNames = {
+        'australia': 'Australia',
+        'uk': 'United Kingdom',
+        'middle_east': 'Middle East'
+      };
+      appendChatMessage({
+        role: 'user',
+        content: `▸ ${regionNames[actionValue]}`
+      });
+      state.selectedRegion = actionValue;
+      askJurisdiction();
+      break;
+
+    case 'select-jurisdiction':
+      const regionData = JURISDICTIONS[state.selectedRegion];
+      const jurisdictionData = regionData.states[actionValue];
+      appendChatMessage({
+        role: 'user',
+        content: `▸ ${jurisdictionData.name}`
+      });
+      state.selectedJurisdiction = actionValue;
+      state.selectedStateData = jurisdictionData;
+      askCategory();
+      break;
+
+    case 'select-category':
+      appendChatMessage({
+        role: 'user',
+        content: `▸ ${actionValue.replace(/_/g, ' ')}`
+      });
+      state.selectedCategory = actionValue;
+      askQuestion();
+      break;
+
+    case 'select-question':
+      const qData = getQuestionById(actionValue);
+      if (qData) {
+        appendChatMessage({
+          role: 'user',
+          content: `▸ ${qData.text}`
+        });
+        state.selectedQuestion = actionValue;
+        analyzeAndAnswer();
+      }
+      break;
+
+    case 'start-interview':
+      appendChatMessage({
+        role: 'user',
+        content: '[✔] Yes, ask me questions'
+      });
+      startInterviewInChat();
+      break;
+
+    case 'skip-interview':
+      appendChatMessage({
+        role: 'user',
+        content: '[✔] No, I have my own questions'
+      });
+      enableFreeformQuestions();
+      break;
+
+    case 'goto-signup':
+      window.open('https://www.riakosconsulting.com/signup', '_blank');
+      break;
+
+    case 'goto-login':
+      window.open('https://www.riakosconsulting.com/login', '_blank');
+      break;
+
+    case 'save-conversation':
+      handleSaveConversation();
+      break;
+  }
+}
+
+function askRegion() {
+  appendChatMessage({
+    role: 'system',
+    content: `Which region is your construction project located?
+
+▸ Australia (8 states)
+▸ United Kingdom (2 jurisdictions)
+▸ Middle East (6 countries)`
+  });
+
+  showActionButtons([
+    { text: 'Australia', action: 'select-region:australia' },
+    { text: 'United Kingdom', action: 'select-region:uk' },
+    { text: 'Middle East', action: 'select-region:middle_east' }
+  ]);
+}
+
+function askJurisdiction() {
+  const regionData = JURISDICTIONS[state.selectedRegion];
+  const states = Object.entries(regionData.states);
+
+  // Build jurisdiction selection message
+  let content = `Select your jurisdiction:\n\n`;
+  states.forEach(([key, data]) => {
+    const status = data.enabled ? '[✔]' : '[ ]';
+    const suffix = data.enabled ? '' : ' (Coming Soon)';
+    content += `${status} ${data.name}${suffix}\n`;
+  });
+
+  appendChatMessage({
+    role: 'system',
+    content: content
+  });
+
+  // Show buttons only for enabled jurisdictions
+  const buttons = states
+    .filter(([_, data]) => data.enabled)
+    .map(([key, data]) => ({
+      text: data.name,
+      action: `select-jurisdiction:${key}`
+    }));
+
+  showActionButtons(buttons);
+}
+
+function askCategory() {
+  if (!questionBank || !questionBank.jurisdictions[state.selectedJurisdiction]) {
+    appendChatMessage({
+      role: 'system',
+      content: 'Unable to load categories. Please refresh and try again.'
+    });
+    return;
+  }
+
+  const categories = questionBank.jurisdictions[state.selectedJurisdiction].categories;
+
+  let content = `Select a legal area:\n\n`;
+  Object.keys(categories).forEach(cat => {
+    content += `▸ ${cat.replace(/_/g, ' ')}\n`;
+  });
+
+  appendChatMessage({
+    role: 'system',
+    content: content
+  });
+
+  const buttons = Object.keys(categories).map(cat => ({
+    text: cat.replace(/_/g, ' '),
+    action: `select-category:${cat}`
+  }));
+
+  showActionButtons(buttons);
+}
+
+function askQuestion() {
+  if (!questionBank || !questionBank.jurisdictions[state.selectedJurisdiction]) {
+    appendChatMessage({
+      role: 'system',
+      content: 'Unable to load questions. Please refresh and try again.'
+    });
+    return;
+  }
+
+  const category = questionBank.jurisdictions[state.selectedJurisdiction].categories[state.selectedCategory];
+  if (!category || !category.questions) {
+    appendChatMessage({
+      role: 'system',
+      content: 'No questions available for this category.'
+    });
+    return;
+  }
+
+  let content = `Select your question:\n\n`;
+  category.questions.forEach((q, idx) => {
+    content += `${idx + 1}. ${q.text}\n\n`;
+  });
+
+  appendChatMessage({
+    role: 'system',
+    content: content
+  });
+
+  const buttons = category.questions.map((q, idx) => ({
+    text: `Q${idx + 1}`,
+    action: `select-question:${q.id}`
+  }));
+
+  showActionButtons(buttons);
+}
+
+function getQuestionById(questionId) {
+  if (!questionBank || !state.selectedJurisdiction || !state.selectedCategory) return null;
+
+  const category = questionBank.jurisdictions[state.selectedJurisdiction].categories[state.selectedCategory];
+  if (!category || !category.questions) return null;
+
+  return category.questions.find(q => q.id === questionId);
+}
+
+async function analyzeAndAnswer() {
+  // Show selection summary
+  const qData = getQuestionById(state.selectedQuestion);
+  if (!qData) return;
+
+  appendChatMessage({
+    role: 'system',
+    content: `📋 YOUR SELECTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Region: ${state.selectedRegion === 'australia' ? 'Australia' : state.selectedRegion === 'uk' ? 'United Kingdom' : 'Middle East'}
+Jurisdiction: ${state.selectedStateData.name}
+Legal Area: ${state.selectedCategory.replace(/_/g, ' ')}
+Question: ${qData.text}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+  });
+
+  // Create session if needed
+  if (!state.sessionId) {
+    await startSession();
+  }
+
+  // Show analysing message
+  const analysingMsg = appendChatMessage({
+    role: 'system',
+    content: 'Analysing your question',
+    isLoading: true
+  });
+
+  // Call factor analysis API
+  try {
+    const res = await fetch(API_BASE_URL + '/claimcheck/v2/analyze-factors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fingerprint: state.fingerprint,
+        session_id: state.sessionId,
+        context: {
+          jurisdiction: state.selectedJurisdiction,
+          category: state.selectedCategory,
+          initialQuestion: qData.text,
+          categoryName: state.selectedCategory.replace(/_/g, ' '),
+          regime: state.selectedStateData.regime
+        }
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success && data.factors) {
+      state.discriminatingFactors = data.factors;
+
+      // Update analysing message with factors
+      updateChatMessage(analysingMsg.id, {
+        content: `[✔] Analysis complete
+
+I've identified ${data.factors.length} key factors:
+
+${data.factors.map((f, i) => `${i + 1}. ${f.factor}\n   ${f.description}`).join('\n\n')}`,
+        isLoading: false
+      });
+
+      // Get initial answer
+      await getInitialAnswerInChat();
+
+    } else {
+      updateChatMessage(analysingMsg.id, {
+        content: '[✔] Question received - generating answer',
+        isLoading: false
+      });
+
+      await getInitialAnswerInChat();
+    }
+  } catch (error) {
+    console.error('Analysis error:', error);
+    updateChatMessage(analysingMsg.id, {
+      content: '[✔] Proceeding to answer your question',
+      isLoading: false
+    });
+    await getInitialAnswerInChat();
+  }
+}
+
+async function getInitialAnswerInChat() {
+  // Show generating message
+  const generatingMsg = appendChatMessage({
+    role: 'system',
+    content: 'Generating initial guidance',
+    isLoading: true
+  });
+
+  try {
+    const qData = getQuestionById(state.selectedQuestion);
+    const res = await fetch(API_BASE_URL + '/claimcheck/v2/initial-answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fingerprint: state.fingerprint,
+        session_id: state.sessionId,
+        context: {
+          jurisdiction: state.selectedJurisdiction,
+          regime: state.selectedStateData.regime,
+          categoryName: state.selectedCategory.replace(/_/g, ' '),
+          initialQuestion: qData ? qData.text : '',
+          discriminatingFactors: state.discriminatingFactors
+        }
+      })
+    });
+
+    const data = await res.json();
+
+    // Remove generating message
+    messages = messages.filter(m => m.id !== generatingMsg.id);
+    renderMessages();
+
+    if (data.success) {
+      // Show initial answer
+      appendChatMessage({
+        role: 'assistant',
+        content: data.answer
+      });
+
+      // Ask if user wants refinement questions
+      appendChatMessage({
+        role: 'system',
+        content: 'Would you like me to ask clarifying questions to provide more specific guidance? (Type "yes" or "no")'
+      });
+
+      conversationState = 'interview-choice';
+
+    } else {
+      appendChatMessage({
+        role: 'assistant',
+        content: 'I\'ll help you with your question. Let me ask a few details about your situation first...'
+      });
+
+      await startInterviewInChat();
+    }
+
+  } catch (error) {
+    console.error('Initial answer error:', error);
+    messages = messages.filter(m => m.id !== generatingMsg.id);
+    renderMessages();
+
+    appendChatMessage({
+      role: 'assistant',
+      content: 'Let me ask you some questions to understand your situation better...'
+    });
+
+    await startInterviewInChat();
+  }
+}
+
+async function startInterviewInChat() {
+  // Show text input area
+  showTextInput();
+
+  // Enable input
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send-btn');
+
+  if (input) input.disabled = false;
+  if (sendBtn) sendBtn.disabled = false;
+  if (input) input.focus();
+
+  // Ask first question
+  await askNextQuestionInChat();
+}
+
+async function startSession() {
+  try {
+    const res = await fetch(API_BASE_URL + '/claimcheck/v2/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fingerprint: state.fingerprint,
+        tier: state.tier
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      state.sessionId = data.session_id;
+    }
+  } catch (error) {
+    console.error('Session start error:', error);
+  }
+}
+
+function handleSaveConversation() {
+  if (state.tier === 'free') {
+    // Show login/signup modal
+    appendChatMessage({
+      role: 'system',
+      content: 'To save your conversation, please sign up or log in to your Riakos Consulting account.'
+    });
+
+    showActionButtons([
+      { text: 'Sign Up', action: 'goto-signup' },
+      { text: 'Log In', action: 'goto-login' }
+    ]);
+
+  } else {
+    // Export for paid members
+    const exportData = {
+      version: '2.0',
+      exportedAt: new Date().toISOString(),
+      selections: {
+        region: state.selectedRegion,
+        jurisdiction: state.selectedJurisdiction,
+        category: state.selectedCategory,
+        question: state.selectedQuestion
+      },
+      factors: state.discriminatingFactors,
+      messages: messages.map(m => ({
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp.toISOString()
+      })),
+      tier: state.tier
+    };
+
+    // Download as JSON
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `claimcheck-conversation-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    appendChatMessage({
+      role: 'system',
+      content: '[✔] Conversation saved to your downloads'
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// USER INPUT HANDLING
+// ═══════════════════════════════════════════════════════
+
+function setupChatInputHandlers() {
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send-btn');
+
+  if (!input || !sendBtn) return;
+
+  // Enter to send (Shift+Enter for new line would require more logic)
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage();
+    }
+  });
+
+  // Button click
+  sendBtn.addEventListener('click', sendChatMessage);
+
+  // Enable/disable send button based on input
+  input.addEventListener('input', () => {
+    sendBtn.disabled = !input.value.trim() || state.isLoading;
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// BACKEND ROUTER - All conversation logic server-side
+// ═══════════════════════════════════════════════════════
+
+async function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const answer = input.value.trim();
+
+  if (!answer || state.isLoading) return;
+
+  // Disable input
+  state.isLoading = true;
+  input.disabled = true;
+  document.getElementById('chat-send-btn').disabled = true;
+
+  // Show user message
+  appendChatMessage({
+    role: 'user',
+    content: answer
+  });
+
+  // Clear input
+  input.value = '';
+
+  try {
+    // Call backend router (always enabled)
+    const res = await fetch(API_BASE_URL + '/claimcheck/v2/turn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fingerprint: state.fingerprint,
+        session_id: state.sessionId,
+        userMessage: answer
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      // Show bot response
+      appendChatMessage({
+        role: 'system',
+        content: data.botMessage
+      });
+
+      // Log state transition
+      console.log('[ClaimCheck Router] State:', data.nextState);
+
+    } else {
+      console.error('[ClaimCheck Router] Error:', data.error, data.code);
+      appendChatMessage({
+        role: 'system',
+        content: 'Sorry, there was an error. Please try again.'
+      });
+    }
+
+  } catch (error) {
+    console.error('[ClaimCheck Router] Error:', error);
+    appendChatMessage({
+      role: 'system',
+      content: 'Sorry, an error occurred. Please try again.'
+    });
+  } finally {
+    state.isLoading = false;
+    input.disabled = false;
+    document.getElementById('chat-send-btn').disabled = false;
+    input.focus();
+  }
+}
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+
+  <!-- Waiting List Modal -->
+  <div class="waitlist-modal" id="waitlist-modal">
+    <div class="waitlist-content">
+      <h3 class="waitlist-title">Join Waiting List</h3>
+      <p class="waitlist-subtitle">
+        <span id="waitlist-jurisdiction-name"></span> is coming soon.
+        Register your interest to be notified when available.
+      </p>
+
+      <form class="waitlist-form" id="waitlist-form">
+        <input
+          type="email"
+          placeholder="Company email address"
+          id="waitlist-email"
+          required
+          pattern="^[^@]+@(?!gmail|outlook|hotmail|yahoo|live|icloud|proton)[^@]+\.[^@]+$"
+          title="Company work email only (no Gmail, Outlook, etc.)"
+        />
+
+        <textarea
+          placeholder="Optional: Tell us about your use case"
+          id="waitlist-message"
+          rows="3"
+        ></textarea>
+
+        <input type="hidden" id="waitlist-jurisdiction" />
+
+        <div id="waitlist-error" class="waitlist-error" style="display: none;"></div>
+
+        <div class="waitlist-buttons">
+          <button type="submit" class="btn btn-primary">Join Waiting List</button>
+          <button type="button" class="btn" id="btn-close-waitlist">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</body>
+</html>
